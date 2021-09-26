@@ -2,6 +2,8 @@ import torch
 import torchio as tio
 import pytorch_lightning as pl
 from torch.utils.data import random_split, DataLoader, Dataset
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
+from NiiGzLoader import NiiGzLoader
 
 
 class RSNAPre(pl.LightningDataModule):
@@ -10,14 +12,16 @@ class RSNAPre(pl.LightningDataModule):
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.input_size = input_size
+        self.transform = tio.CropOrPad(self.input_size)
+
+        self.columns = []
 
     def setup(self, stage: Optional[str] = None):
 
-        transform = tio.CropOrPad(self.input_size)
-        train_set = tio.datasets.RSNAMICCAI(
-            self.data_dir, train=True, transform=transform)
-        test_set = tio.datasets.RSNAMICCAI(
-            self.data_dir, train=False, transform=transform)
+        train_set = NiiGzLoader(
+            self.data_dir, train=True, transform=self.transform)
+        test_set = NiiGzLoader(
+            self.data_dir, train=False, transform=self.transform)
 
         # Training mode: 90/10% split
         split_ratio = 0.9
@@ -41,3 +45,13 @@ class RSNAPre(pl.LightningDataModule):
     def teardown(self, stage: Optional[str] = None):
         # Used to clean-up when the run is finished
         ...
+
+
+if __name__ == '__main__':
+    dataset = RSNAPre(
+        data_dir='/Volumes/GoogleDrive/我的雲端硬碟/KaggleBrain/rsna-preprocessed')
+    dataset.setup()
+
+    loader = dataset.train_dataloader()
+
+    print(loader.dataset[0])
